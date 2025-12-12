@@ -1,0 +1,7 @@
+{
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "name": "App",
+  "description": "Offline English Learning App for Grade 7."
+}
