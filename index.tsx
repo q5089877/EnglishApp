@@ -67,8 +67,7 @@ const App = () => {
   // Example handler - select lesson
   const handleLessonSelect = (bk: number, ls: number) => {
     setSelectedLesson(ls);
-    const lessonId = `${bk}-${ls}`;
-    const data = getLessonData(lessonId);
+    const data = getLessonData(bk, ls);
     setLessonContent(data);
     setView('lesson');
   };
@@ -107,11 +106,12 @@ const App = () => {
   };
 
   const handleImport = (content: string) => {
-    if (importUserData(content)) {
-      alert("資料匯入成功！頁面將重新整理。");
+    const result = importUserData(content);
+    if (result.success) {
+      alert(`資料匯入成功！${result.details || ''} 頁面將重新整理。`);
       window.location.reload();
     } else {
-      alert("資料格式錯誤，匯入失敗。");
+      alert(`匯入失敗：${result.error}\n${result.details || ''}`);
     }
   };
 
@@ -151,7 +151,7 @@ const App = () => {
       case 'settings':
         return <SettingsView onBack={onBackToHome} onExport={handleExport} onImport={handleImport} onClearData={handleClearData} />;
       case 'library':
-        return <WordLibraryView onBack={onBackToHome} onGoToLesson={(lessonId) => {
+        return <WordLibraryView onBack={onBackToHome} onGoToLesson={(lessonId: string) => {
           const [bk, ls] = lessonId.split('-');
           handleLessonSelect(parseInt(bk), parseInt(ls));
         }} />;

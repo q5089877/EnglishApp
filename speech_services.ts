@@ -66,18 +66,31 @@ export class SpeechRecognizer {
     }
   }
 
+  public static getErrorMessage(error: string): string {
+    const errorMessages: Record<string, string> = {
+      'no-speech': '未偵測到語音，請再試一次',
+      'audio-capture': '無法存取麥克風，請檢查權限設定',
+      'not-allowed': '麥克風權限被拒絕，請在瀏覽器設定中允許',
+      'network': '網路連線錯誤，請檢查網路狀態',
+      'aborted': '語音辨識已取消',
+      'service-not-allowed': '此裝置不支援語音服務',
+      'bad-grammar': '語法錯誤，請稍後再試',
+      'language-not-supported': '不支援此語言'
+    };
+    return errorMessages[error] || `語音辨識發生錯誤：${error}`;
+  }
+
   public start(
     onStart: () => void,
     onResult: (text: string) => void,
-    onError: (error: any) => void,
+    onError: (error: string, message: string) => void,
     onEnd: () => void
   ): void {
     if (!this.isSupported) {
-      alert("您的瀏覽器不支援語音辨識功能 (Web Speech API)。請嘗試使用 Chrome 或 Safari。");
+      onError('not-supported', '您的瀏覽器不支援語音辨識功能 (Web Speech API)。請嘗試使用 Chrome 或 Safari。');
       return;
     }
 
-    // Bind callbacks
     this.recognition.onstart = onStart;
     
     this.recognition.onresult = (event: any) => {
@@ -86,15 +99,18 @@ export class SpeechRecognizer {
     };
 
     this.recognition.onerror = (event: any) => {
-      onError(event.error);
+      const errorCode = event.error;
+      const message = SpeechRecognizer.getErrorMessage(errorCode);
+      onError(errorCode, message);
     };
 
     this.recognition.onend = onEnd;
 
     try {
       this.recognition.start();
-    } catch(e) {
+    } catch(e: any) {
       console.error("Failed to start recognition", e);
+      onError('start-failed', '啟動語音辨識失敗，請重新整理頁面後再試');
       onEnd();
     }
   }

@@ -217,17 +217,61 @@ export const exportUserData = (): string => {
   return JSON.stringify(data, null, 2);
 };
 
-export const importUserData = (jsonString: string): boolean => {
+export interface ImportResult {
+  success: boolean;
+  error?: string;
+  details?: string;
+}
+
+export const importUserData = (jsonString: string): ImportResult => {
+  if (!jsonString || jsonString.trim() === '') {
+    return { success: false, error: '檔案內容為空', details: '請選擇有效的備份檔案' };
+  }
+
+  let data: any;
   try {
-    const data = JSON.parse(jsonString);
-    if (data.history) localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(data.history));
-    if (data.mistakes) localStorage.setItem(STORAGE_KEY_MISTAKES, JSON.stringify(data.mistakes));
-    if (data.vocab) localStorage.setItem(STORAGE_KEY_VOCAB, JSON.stringify(data.vocab));
-    if (data.stats) localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(data.stats));
-    if (data.settings) localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(data.settings));
-    return true;
+    data = JSON.parse(jsonString);
   } catch (e) {
-    console.error("Import failed", e);
-    return false;
+    return { success: false, error: 'JSON 格式錯誤', details: '檔案格式不正確，請確認是有效的備份檔案' };
+  }
+
+  if (!data || typeof data !== 'object') {
+    return { success: false, error: '資料格式錯誤', details: '備份檔案結構不正確' };
+  }
+
+  if (!data.version) {
+    return { success: false, error: '版本資訊遺失', details: '這可能不是有效的備份檔案' };
+  }
+
+  try {
+    let importedCount = 0;
+    if (data.history && Array.isArray(data.history)) {
+      localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify(data.history));
+      importedCount++;
+    }
+    if (data.mistakes && Array.isArray(data.mistakes)) {
+      localStorage.setItem(STORAGE_KEY_MISTAKES, JSON.stringify(data.mistakes));
+      importedCount++;
+    }
+    if (data.vocab && typeof data.vocab === 'object') {
+      localStorage.setItem(STORAGE_KEY_VOCAB, JSON.stringify(data.vocab));
+      importedCount++;
+    }
+    if (data.stats && typeof data.stats === 'object') {
+      localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(data.stats));
+      importedCount++;
+    }
+    if (data.settings && typeof data.settings === 'object') {
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(data.settings));
+      importedCount++;
+    }
+
+    if (importedCount === 0) {
+      return { success: false, error: '無可匯入的資料', details: '備份檔案中沒有找到任何有效資料' };
+    }
+
+    return { success: true, details: `成功匯入 ${importedCount} 項資料` };
+  } catch (e: any) {
+    return { success: false, error: '儲存失敗', details: e.message || '無法寫入本機儲存空間' };
   }
 };
